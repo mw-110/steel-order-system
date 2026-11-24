@@ -1,0 +1,44 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: steel-order-system
+
+  # H2 Database 設定（PostgreSQL互換モード）
+  datasource:
+    url: jdbc:h2:mem:steeldb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  # H2 Webコンソール有効化（http://localhost:8080/h2-console で確認可能）
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # JPA / Hibernate 設定
+  jpa:
+    hibernate:
+      # 自前の schema.sql を正とするため、エンティティとの整合性チェックのみ行う
+      ddl-auto: validate
+    show-sql: true
+    properties:
+      hibernate:
+      '[format_sql]': true
+    # SQL初期化をHibernateのエンティティマネージャー生成より前に実行する
+    defer-datasource-initialization: false
+
+  # 起動時のDDL・サンプルデータ自動投入設定
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      data-locations: classpath:data.sql
+      encoding: UTF-8
+
+# Swagger UI パス設定（http://localhost:8080/swagger-ui.html）
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      th:replace="~{layout/base :: layout('コイル入荷登録', ~{::content})}">
+<body>
+<section th:fragment="content" class="p-4">
+    <div th:if="${successMessage}" class="alert alert-success fw-bold alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i><span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${infoMessage}" class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="bi bi-info-circle me-2"></i><span th:text="${infoMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle me-2"></i><span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+
+    <div sec:authorize="hasAnyRole('WAREHOUSE','ADMIN')" class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h2 class="h6 mb-0 fw-bold"><i class="bi bi-truck me-2"></i>新規コイル入荷登録</h2>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/arrivals}" th:object="${arrivalForm}" method="post"
+                  onsubmit="const coilNumber = document.getElementById('coilNumber');
+                            if (!coilNumber.value.trim()) {
+                                coilNumber.setCustomValidity('コイル番号を入力してください');
+                                coilNumber.reportValidity();
+                                return false;
+                            }
+                            coilNumber.setCustomValidity('');">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-5">
+                        <label for="steelSheetId" class="form-label small fw-semibold">鋼板（製品）</label>
+                        <select id="steelSheetId" class="form-select" th:field="*{steelSheetId}" required
+                                oninvalid="this.setCustomValidity('鋼板を選択してください')"
+                                onchange="this.setCustomValidity(''); this.nextElementSibling.textContent = ''; this.classList.remove('is-invalid')">
+                            <option value="">鋼板を選択してください</option>
+                            <option th:each="option : ${arrivalOptions}" th:value="${option.steelSheetId}"
+                                    th:text="${option.steelCode} + ' : ' + ${option.steelName} + ' ' + ${option.thickness} + '×' + ${option.width} + 'mm 【現在引当待ち: ' + ${option.backorderCount} + '件 / ' + ${#numbers.formatInteger(option.shortageWeight, 1, 'COMMA')} + 'kg】'">
+                            </option>
+                        </select>
+                        <div class="text-danger small arrival-validation-message" th:errors="*{steelSheetId}"></div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="coilNumber" class="form-label small fw-semibold">コイル番号</label>
+                        <input id="coilNumber"
+                               type="text"
+                               class="form-control"
+                               th:field="*{coilNumber}"
+                               required
+                               oninvalid="this.setCustomValidity('コイル番号を入力してください')"
+                               oninput="this.setCustomValidity(this.value.trim() === '' ? 'コイル番号を入力してください' : ''); this.nextElementSibling.textContent = ''; this.classList.remove('is-invalid')">
+                        <div class="text-danger small arrival-validation-message" th:errors="*{coilNumber}"></div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="arrivalWeight" class="form-label small fw-semibold">入荷重量（kg）</label>
+                        <input id="arrivalWeight" type="number" class="form-control" min="1" th:field="*{arrivalWeight}" required
+                               oninvalid="this.setCustomValidity('入荷重量を1kg以上で入力してください')"
+                               oninput="this.setCustomValidity(''); this.nextElementSibling.textContent = ''; this.classList.remove('is-invalid')">
+                        <div class="text-danger small arrival-validation-message" th:errors="*{arrivalWeight}"></div>
+                    </div>
+                    <div class="col-md-2">
+                        <label for="arrivalDate" class="form-label small fw-semibold">入荷日</label>
+                        <input id="arrivalDate" name="arrivalDate" type="date" class="form-control"
+                               th:value="${arrivalForm.arrivalDate != null ? #temporals.format(arrivalForm.arrivalDate, 'yyyy-MM-dd') : ''}" required
+                               oninvalid="this.setCustomValidity('入荷日を入力してください')"
+                               oninput="this.setCustomValidity(''); this.nextElementSibling.textContent = ''; this.classList.remove('is-invalid')">
+                        <div class="text-danger small arrival-validation-message" th:errors="*{arrivalDate}"></div>
+                    </div>
+                    <div class="col-12 d-grid d-md-flex justify-content-md-end mt-2">
+                        <button type="submit" class="btn btn-primary px-4">
+                            <i class="bi bi-box-arrow-in-down me-1"></i>入荷登録
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div sec:authorize="hasRole('SALES')" class="alert alert-light border mb-4">
+        <i class="bi bi-eye me-2"></i>閲覧専用モードです。入荷登録は倉庫担当または管理者のみ可能です。
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0 fw-bold"><i class="bi bi-clock-history me-2"></i>直近入荷履歴</h2>
+            <span class="badge bg-secondary-subtle text-secondary" th:text="${#lists.size(histories)} + '件'"></span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>入荷日時</th>
+                    <th>鋼板コード</th>
+                    <th>コイル番号</th>
+                    <th>鋼板名・サイズ</th>
+                    <th class="text-end">入荷重量</th>
+                    <th class="text-end">現在の有効残重量</th>
+                    <th>自動充当実績メモ</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(histories)}">
+                    <td colspan="7" class="text-center py-5 text-secondary">入荷履歴がありません</td>
+                </tr>
+                <tr th:each="history : ${histories}">
+                    <td th:text="${#temporals.format(history.createdAt, 'yyyy-MM-dd HH:mm')}" class="text-nowrap"></td>
+                    <td th:text="${history.steelCode}"></td>
+                    <td class="fw-semibold" th:text="${history.coilNumber}"></td>
+                    <td>
+                        <span th:text="${history.steelName}"></span><br>
+                        <small class="text-secondary" th:text="${history.thickness} + 'mm × ' + ${history.width} + 'mm'"></small>
+                    </td>
+                    <td class="text-end" th:text="${#numbers.formatInteger(history.arrivalWeight, 1, 'COMMA')} + ' kg'"></td>
+                    <td class="text-end fw-bold" th:text="${#numbers.formatInteger(history.currentAvailableWeight, 1, 'COMMA')} + ' kg'"></td>
+                    <td>
+                        <span th:if="${history.hasAutoAllocation}" class="badge bg-success-subtle text-success mb-1">自動充当あり</span>
+                        <div th:text="${history.autoAllocatedInfo ?: '-'}"></div>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+</body>
+</html>

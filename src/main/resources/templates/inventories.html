@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('在庫照会・検索', ~{::content})}">
+<body>
+<section th:fragment="content" class="p-4">
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h2 class="h6 mb-0 fw-bold"><i class="bi bi-funnel me-2"></i>複合条件検索</h2>
+        </div>
+        <div class="card-body">
+            <form th:action="@{/inventories}" th:object="${searchForm}" method="get">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label for="steelGrade" class="form-label small fw-semibold">鋼種</label>
+                        <select id="steelGrade" class="form-select" th:field="*{steelGrade}">
+                            <option value="">すべて</option>
+                            <option value="SPCC">SPCC</option>
+                            <option value="SGCC">SGCC</option>
+                            <option value="JAC270C">JAC270C</option>
+                            <option value="SECC">SECC</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="usageCategory" class="form-label small fw-semibold">用途区分</label>
+                        <input id="usageCategory" type="text" class="form-control" th:field="*{usageCategory}" placeholder="例：自動車">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">板厚（mm）</label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" min="0.01" class="form-control" th:field="*{minThickness}" placeholder="最小">
+                            <span class="input-group-text">〜</span>
+                            <input type="number" step="0.01" min="0.01" class="form-control" th:field="*{maxThickness}" placeholder="最大">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-semibold">板幅（mm）</label>
+                        <div class="input-group">
+                            <input type="number"  min="1" class="form-control" th:field="*{minWidth}" placeholder="最小">
+                            <span class="input-group-text">〜</span>
+                            <input type="number" min="1" class="form-control" th:field="*{maxWidth}" placeholder="最大">
+                        </div>
+                    </div>
+                    <div class="col-md-1 d-grid gap-2">
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> 検索</button>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a th:href="@{/inventories}" class="text-decoration-none"><i class="bi bi-arrow-counterclockwise"></i> リセット</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center">
+            <h2 class="h5 mb-0 fw-bold"><i class="bi bi-boxes me-2"></i>鋼板別在庫一覧</h2>
+            <span class="badge bg-secondary-subtle text-secondary" th:text="${#lists.size(stocks)} + '種類'">0種類</span>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th>鋼板コード</th>
+                    <th>鋼板名（鋼種）</th>
+                    <th>用途区分</th>
+                    <th>サイズ</th>
+                    <th class="text-end">総在庫重量</th>
+                    <th class="text-end">引当済重量</th>
+                    <th class="text-end">有効在庫重量</th>
+                    <th class="text-end">安全在庫</th>
+                    <th>在庫状況</th>
+                    <th class="text-center">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:if="${#lists.isEmpty(stocks)}">
+                    <td colspan="10" class="text-center py-5 text-secondary">該当する鋼板がありません</td>
+                </tr>
+                <tr th:each="stock : ${stocks}">
+                    <td class="fw-semibold" th:text="${stock.steelCode}"></td>
+                    <td><span th:text="${stock.steelName}"></span><br><small class="text-secondary" th:text="${stock.steelGrade}"></small></td>
+                    <td th:text="${stock.usageCategory}"></td>
+                    <td th:text="${stock.thickness} + 'mm × ' + ${stock.width} + 'mm'"></td>
+                    <td class="text-end" th:text="${#numbers.formatInteger(stock.totalPhysicalWeight, 1, 'COMMA')} + ' kg'"></td>
+                    <td class="text-end" th:text="${#numbers.formatInteger(stock.totalAllocatedWeight, 1, 'COMMA')} + ' kg'"></td>
+                    <td class="text-end fw-bold fs-6" th:text="${#numbers.formatInteger(stock.totalAvailableWeight, 1, 'COMMA')} + ' kg'"></td>
+                    <td class="text-end" th:text="${#numbers.formatInteger(stock.safetyStockWeight, 1, 'COMMA')} + ' kg'"></td>
+                    <td><span class="badge" th:classappend="${stock.stockBadgeClass}" th:text="${stock.stockStatusLabel}"></span></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                                th:data-bs-target="'#coilModal-' + ${stock.steelSheetId}">
+                            コイル明細 (<span th:text="${#lists.size(stock.coils)}"></span>本)
+                        </button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div th:each="stock : ${stocks}" class="modal fade" th:id="'coilModal-' + ${stock.steelSheetId}" tabindex="-1"
+         aria-labelledby="coilModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title fs-5 fw-bold" id="coilModalLabel" th:text="${stock.steelName}"></h2>
+                        <div class="small text-secondary" th:text="${stock.steelCode} + ' / ' + ${stock.thickness} + 'mm × ' + ${stock.width} + 'mm'"></div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
+                </div>
+                <div class="modal-body">
+                    <div th:if="${#lists.isEmpty(stock.coils)}" class="text-center py-4 text-secondary">在庫コイルがありません</div>
+                    <div th:unless="${#lists.isEmpty(stock.coils)}" class="table-responsive">
+                        <table class="table table-striped align-middle mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th>コイル番号</th>
+                                <th>入庫日</th>
+                                <th class="text-end">初期重量</th>
+                                <th class="text-end">引当済重量</th>
+                                <th class="text-end">有効残重量</th>
+                                <th>ステータス</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="coil : ${stock.coils}">
+                                <td class="fw-semibold" th:text="${coil.coilNumber}"></td>
+                                <td>
+                                    <span th:text="${#temporals.format(coil.arrivalDate, 'yyyy-MM-dd')}"></span>
+                                    <span th:if="${coil.isLongTermStagnant}" class="badge bg-info text-dark ms-1">長期滞留</span>
+                                </td>
+                                <td class="text-end" th:text="${#numbers.formatInteger(coil.initialWeight, 1, 'COMMA')} + ' kg'"></td>
+                                <td class="text-end" th:text="${#numbers.formatInteger(coil.allocatedWeight, 1, 'COMMA')} + ' kg'"></td>
+                                <td class="text-end fw-bold" th:text="${#numbers.formatInteger(coil.availableWeight, 1, 'COMMA')} + ' kg'"></td>
+                                <td><span class="badge" th:classappend="${coil.badgeClass}" th:text="${coil.statusLabel}"></span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a th:href="@{/arrivals(steelSheetId=${stock.steelSheetId})}" class="btn btn-primary">
+                        <i class="bi bi-truck me-1"></i>この鋼板を入荷登録する
+                    </a>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>

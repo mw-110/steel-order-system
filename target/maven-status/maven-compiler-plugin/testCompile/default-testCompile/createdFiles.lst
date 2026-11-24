@@ -1,0 +1,11 @@
+com/example/steelorder/repository/CoilOptimisticLockingIntegrationTest.class
+com/example/steelorder/service/InventoryServiceIntegrationTest.class
+com/example/steelorder/controller/ScreenControllerWebMvcTest.class
+com/example/steelorder/controller/api/SteelOrderRestControllerWebMvcTest.class
+com/example/steelorder/service/ArrivalServiceTest.class
+com/example/steelorder/service/OrderServiceTest.class
+com/example/steelorder/service/DashboardServiceTest.class
+com/example/steelorder/service/ShipmentServiceTest.class
+com/example/steelorder/service/ReportServiceTest.class
+com/example/steelorder/config/SecurityRuleWebMvcTest.class
+com/example/steelorder/service/CustomUserDetailsServiceIntegrationTest.class
